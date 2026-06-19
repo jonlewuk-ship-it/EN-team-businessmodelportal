@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACCA Digital Business Model Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+--gold:#ffd400;
+--blue:#43b8ff;
+--bg:#050811;
+--glass:rgba(18,27,44,.65);
+--glass-hover:rgba(26,38,62,.85);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+body{
+background:
+radial-gradient(circle at 15% 15%,rgba(67,184,255,.18),transparent 35%),
+radial-gradient(circle at 85% 5%,rgba(255,212,0,.1),transparent 40%),
+linear-gradient(180deg,#04070f,#08111e,#020306);
+color:#fff;
+min-height:100vh;
+overflow-x:hidden;
+position: relative;
+padding-bottom: 120px;
+}
+header{
+padding:60px 60px 30px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+.logo{
+font-size:56px;
+font-weight:900;
+color:var(--gold);
+text-shadow:0 0 30px rgba(255,212,0,.45);
+letter-spacing:-1px;
+}
+h1{font-weight:800; font-size:32px; letter-spacing:-0.5px;}
+.subtitle{opacity:.7;margin-top:8px; font-weight: 500; color:#b4c7e7;}
+.search-wrapper{display:flex; flex-direction:column; gap:6px;}
+.search{
+padding:16px 22px;
+border-radius:40px;
+border:1px solid rgba(255,255,255,.12);
+background:rgba(255,255,255,.04);
+color:#fff;
+width:320px;
+font-size:15px;
+transition:all 0.3s ease;
+backdrop-filter: blur(10px);
+}
+.search:focus{
+outline:none;
+border-color:var(--blue);
+box-shadow:0 0 20px rgba(67,184,255,0.25);
+background:rgba(255,255,255,.08);
+}
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:32px;
+padding:30px 60px 70px;
+}
+.card-wrapper{
+position: relative;
+height:350px;
+perspective: 1000px;
+}
+.card{
+display: block;
+position:relative;
+height:100%;
+border-radius:32px;
+overflow:hidden;
+background:var(--glass);
+backdrop-filter:blur(24px);
+-webkit-backdrop-filter:blur(24px);
+border:1px solid rgba(255,255,255,.07);
+transition:all .5s cubic-bezier(0.25, 0.8, 0.25, 1);
+text-decoration:none;
+color:white;
+box-shadow:0 20px 50px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,0.1);
+}
+.card:hover{
+transform:translateY(-14px) rotateX(3deg);
+background:var(--glass-hover);
+border-color:rgba(255,212,0,0.3);
+box-shadow:0 35px 70px rgba(255,212,0,.15), inset 0 1px 2px rgba(255,255,255,0.2);
+}
+.sky{
+position:absolute;inset:0;
+background-size:cover;
+background-position:center;
+filter:brightness(.4);
+transition:transform 1.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.card:hover .sky{transform:scale(1.1); filter:brightness(.45);}
+.overlay{
+position:absolute;inset:0;
+background:linear-gradient(to top,#04070f 15%,rgba(4,7,15,0.4) 60%,transparent 100%);
+}
+.flag{
+position:absolute;
+top:26px;right:26px;
+width:76px;height:76px;
+border-radius:50%;
+box-shadow:0 15px 30px rgba(0,0,0,.6), inset 4px 4px 10px rgba(255,255,255,0.3);
+transform:perspective(600px) rotateY(-15deg);
+transition: all 0.5s ease;
+}
+.card:hover .flag{
+transform:perspective(600px) rotateY(-5deg) scale(1.05);
+}
+.content{
+position:absolute;
+bottom:28px;
+left:28px;
+right:28px;
+}
+h2{font-size:30px; font-weight:700; letter-spacing:-0.5px;}
+.city{color:var(--gold);margin:6px 0 20px; font-weight:600; font-size:14px; text-transform: uppercase; letter-spacing: 1px;}
+.btn{
+display:inline-block;
+padding:14px 22px;
+border-radius:30px;
+background:linear-gradient(90deg,var(--gold),#ffe778);
+color:#050811;
+font-weight:800;
+font-size:14px;
+box-shadow:0 8px 20px rgba(255,212,0,0.2);
+transition:all 0.3s ease;
+}
+.card:hover .btn{
+box-shadow:0 12px 25px rgba(255,212,0,0.4);
+transform:scale(1.03);
+}
+
+footer{
+text-align:center;
+padding:40px;
+color:#8da2bf;
+font-size:14px;
+letter-spacing: 0.5px;
+border-top:1px solid rgba(255,255,255,0.03);
+display: flex;
+flex-direction: column;
+gap: 12px;
+align-items: center;
+justify-content: center;
+}
+.support-tag {
+display: inline-flex;
+align-items: center;
+gap: 8px;
+background: rgba(67,184,255,0.08);
+border: 1px solid rgba(67,184,255,0.15);
+padding: 6px 16px;
+border-radius: 20px;
+color: #a6d8ff;
+text-decoration: none;
+font-weight: 600;
+font-size: 13px;
+transition: all 0.3s ease;
+}
+.support-tag:hover {
+background: rgba(67,184,255,0.2);
+border-color: var(--blue);
+color: #fff;
+box-shadow: 0 0 15px rgba(67,184,255,0.3);
+transform: translateY(-1px);
+}
+.support-tag .dot {
+width: 7px;
+height: 7px;
+background-color: #39ec67;
+border-radius: 50%;
+box-shadow: 0 0 8px #39ec67;
+}
+
+.add-country-btn {
+position: fixed;
+bottom: 35px;
+right: 45px;
+z-index: 100;
+padding: 16px 30px;
+border-radius: 40px;
+background: linear-gradient(135deg, rgba(67,184,255,0.25), rgba(255,212,0,0.15));
+backdrop-filter: blur(20px);
+-webkit-backdrop-filter: blur(20px);
+border: 1px solid rgba(255,255,255,0.18);
+color: #fff;
+font-weight: 700;
+font-size: 15px;
+cursor: pointer;
+box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.2);
+transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+display: flex;
+align-items: center;
+gap: 12px;
+}
+.add-country-btn:hover {
+transform: translateY(-6px);
+border-color: var(--gold);
+box-shadow: 0 25px 50px rgba(255,212,0,0.25);
+background: linear-gradient(135deg, rgba(67,184,255,0.35), rgba(255,212,0,0.25));
+}
+
+.delete-card-btn {
+position: absolute;
+top: 22px;
+left: 22px;
+z-index: 10;
+width: 38px;
+height: 38px;
+border-radius: 50%;
+background: rgba(255, 77, 77, 0.15);
+border: 1px solid rgba(255, 77, 77, 0.3);
+color: #ff9999;
+font-size: 22px;
+font-weight: 400;
+line-height: 1;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+backdrop-filter: blur(10px);
+-webkit-backdrop-filter: blur(10px);
+transition: all 0.25s ease;
+}
+.delete-card-btn:hover {
+background: rgba(255, 77, 77, 0.9);
+border-color: #ff4d4d;
+color: #fff;
+box-shadow: 0 0 20px rgba(255, 77, 77, 0.5);
+transform: scale(1.15) rotate(90deg);
+}
+</style>
+</head>
+<body>
+<header>
+<div>
+<div class="logo">ACCA</div>
+<h1>Digital Business Model Canvas Portal</h1>
+<div class="subtitle">Global Sales Intelligence Workspace</div>
+</div>
+<div class="search-wrapper">
+<input class="search" id="search" placeholder="Search country..." aria-label="Search target countries">
+</div>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<button class="add-country-btn" id="addCountryBtn">
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 1V15M1 8H15" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+Add Custom Workspace
+</button>
+
+<footer>
+<div>ACCA software  |  EN TEAM Strategic Operations Control Hub - 2026</div>
+<a href="https://acca-chat.usbim.com/group/coordinamento-internazionale-8ssz3cpd58m6bj6c2" target="_blank" class="support-tag">
+<span class="dot"></span>
+<span>HUB Support: Tony De Palma</span>
+</a>
+</footer>
+
+<script>
+// Core data fallback blueprint
+const defaultMarkets=[
+{name:"United Kingdom", city:"London", code:"gb", img:"https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200", url:"https://collaborative-bmc.vercel.app/canvas/1phfrx5eh3a0hbooly4pw7rjfq75ec76", custom:false},
+{name:"Australia", city:"Sydney", code:"au", img:"https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1200", url:"#", custom:false},
+{name:"Canada", city:"Toronto", code:"ca", img:"https://images.unsplash.com/photo-1507992781348-3102a57a4ac4?w=1200", url:"#", custom:false},
+{name:"USA", city:"New York", code:"us", img:"https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1200", url:"#", custom:false},
+{name:"Ireland", city:"Dublin", code:"ie", img:"https://images.unsplash.com/photo-1549918838-7c899fafb15d?w=1200", url:"#", custom:false},
+{name:"Poland", city:"Warsaw", code:"pl", img:"https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=1200", url:"#", custom:false},
+{name:"India", city:"Mumbai", code:"in", img:"https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1200", url:"#", custom:false},
+{name:"UAE", city:"Dubai", code:"ae", img:"https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200", url:"#", custom:false},
+{name:"Slovakia", city:"Bratislava", code:"sk", img:"https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?w=1200", url:"#", custom:false}
+];
+
+// Initialize dataset from storage, or fallback to the standard 9-market array
+let data = JSON.parse(localStorage.getItem('acca_workspace_portal_data')) || defaultMarkets;
+
+const grid=document.getElementById('grid');
+const search=document.getElementById('search');
+const addBtn=document.getElementById('addCountryBtn');
+
+// Helper to push runtime changes to browser storage
+function saveToStorage() {
+localStorage.setItem('acca_workspace_portal_data', JSON.stringify(data));
+}
+
+function render(filter=""){
+let combinedHTML = "";
+const query = filter.toLowerCase();
+
+data.forEach((d, index) => {
+if(!d.name.toLowerCase().includes(query)) return;
+
+combinedHTML += `
+<div class="card-wrapper">
+${d.custom ? `<button class="delete-card-btn" onclick="deleteCountry(${index}, '${d.name}')" title="Remove Workspace" aria-label="Delete ${d.name} workspace">&times;</button>` : ''}
+<a class="card" href="${d.url}" target="_blank">
+<div class="sky" style="background-image:url('${d.img}')"></div>
+<div class="overlay"></div>
+<img class="flag" src="https://flagcdn.com/w320/${d.code.toLowerCase()}.png" onerror="this.src='https://flagcdn.com/w320/un.png'">
+<div class="content">
+<h2>${d.name}</h2>
+<div class="city">${d.city} Skyline</div>
+<div class="btn">Launch Workspace &rarr;</div>
+</div>
+</a>
+</div>`;
+});
+
+grid.innerHTML = combinedHTML;
+}
+
+window.deleteCountry = (index, name) => {
+if(confirm(`Are you sure you want to permanently delete the custom workspace entry for ${name}?`)) {
+data.splice(index, 1);
+saveToStorage();
+render(search.value);
+}
+};
+
+addBtn.onclick=()=>{
+const countryName = prompt("Enter Country Name:");
+if(!countryName) return;
+
+const cityName = prompt("Enter Capital/Major City Name:", "Main City");
+if(!cityName) return;
+
+const countryCode = prompt("Enter 2-letter Country Code (e.g. 'it', 'de', 'jp'):", "un").toLowerCase();
+if(!countryCode) return;
+
+const customLink = prompt("Enter Target URL Workspace Link:", "#");
+if(!customLink) return;
+
+const bgImg = prompt("Enter Background Image URL:");
+const finalImg = bgImg ? bgImg : "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200";
+
+data.push({
+name: countryName,
+city: cityName,
+code: countryCode,
+img: finalImg,
+url: customLink,
+custom: true
+});
+
+saveToStorage();
+render(search.value);
+};
+
+render();
+search.oninput=e=>render(e.target.value);
+</script>
+</body>
+</html>
