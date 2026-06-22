@@ -1,14 +1,31 @@
 export default async function handler(request, response) {
-  // 1. Check all possible Vercel environment variable variants
-  const kvUrl = process.env.KV_REST_API_URL || process.env.REDIS_URL || process.env.STORAGE_URL || process.env.KV_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN || process.env.STORAGE_TOKEN;
+  // 1. Grab the single marketplace Redis URL variable
+  const redisConnectionString = process.env.KV_REST_API_URL || process.env.REDIS_URL;
 
-  if (!kvUrl || !kvToken) {
+  if (!redisConnectionString) {
     return response.status(500).json({ 
-      error: `Missing database configuration. Variables found: URL=${!!kvUrl}, TOKEN=${!!kvToken}` 
+      error: "Missing database configuration. Please add KV_REST_API_URL to your Vercel Environment Variables." 
     });
   }
 
+  // 2. Parse out the endpoint and token automatically from the single connection string
+  let kvUrl = "";
+  let kvToken = "";
+
+  try {
+    // Expected format: redis://default:token@host:port or rediss://...
+    const cleanUrlStr = redisConnectionString.replace(/^redis/i, 'http');
+    const parsed = new URL(cleanUrlStr);
+    
+    kvUrl = `https://${parsed.host}`;
+    kvToken = parsed.password || parsed.pathname.split('/')[1] || "";
+  } catch (e) {
+    // If it's already a clean HTTP address from manual entry fallback gracefully
+    kvUrl = redisConnectionString;
+    kvToken = process.env.KV_REST_API_TOKEN || "";
+  }
+
+  // Fallback blueprint data used if database is empty
   const defaultMarkets = [
     {name:"United Kingdom", city:"London", code:"gb", img:"https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200", url:"https://collaborative-bmc.vercel.app/canvas/1phfrx5eh3a0hbooly4pw7rjfq75ec76", custom:false},
     {name:"Australia", city:"Sydney", code:"au", img:"https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1200", url:"#", custom:false},
@@ -22,16 +39,7 @@ export default async function handler(request, response) {
   ];
 
   async function runKvCommand(commandArray) {
-    // Standardize URL scheme (convert redis:// or keys to proper REST https:// endpoint)
-    let cleanUrl = kvUrl;
-    if (cleanUrl.startsWith('redis://')) {
-      cleanUrl = cleanUrl.replace('redis://', 'https://');
-    }
-    if (cleanUrl.startsWith('rediss://')) {
-      cleanUrl = cleanUrl.replace('rediss://', 'https://');
-    }
-    
-    const baseUrl = cleanUrl.endsWith('/') ? cleanUrl.slice(0, -1) : cleanUrl;
+    const baseUrl = kvUrl.endsWith('/') ? kvUrl.slice(0, -1) : kvUrl;
 
     const res = await fetch(baseUrl, {
       method: 'POST',
@@ -44,7 +52,7 @@ export default async function handler(request, response) {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Upstash/Vercel Storage API rejected command: ${errText}`);
+      throw new Error(`Database rejected command: ${errText}`);
     }
 
     const reply = await res.json();
@@ -88,7 +96,6 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: "Method not allowed" });
 
   } catch (error) {
-    // Send the raw underlying error directly to the response payload to read it live
     return response.status(500).json({ error: error.message });
   }
 }
