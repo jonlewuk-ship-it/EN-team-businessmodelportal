@@ -39,7 +39,6 @@ const kvToken = process.env.REDIS_TOKEN;
       }
       return response.status(200).json(JSON.parse(data));
     }
-
     // WRITE: Append a workspace
     if (request.method === 'POST') {
       const newWorkspace = request.body;
