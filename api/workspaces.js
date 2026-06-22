@@ -20,16 +20,17 @@ export default async function handler(request, response) {
     {name:"Slovakia", city:"Bratislava", code:"sk", img:"https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?w=1200", url:"#", custom:false}
   ];
 
-  // Robust isolated internal runner to execute database commands safely
-  async function runKvCommand(command, args) {
-    // Sanitize URL joining to avoid double slash or malformed URL structures
+  // Upstash REST API body-style format: POST base_url with ["COMMAND", "arg1", "arg2"]
+  async function runKvCommand(commandArray) {
     const baseUrl = kvUrl.endsWith('/') ? kvUrl.slice(0, -1) : kvUrl;
-    const targetUrl = `${baseUrl}/${command}`;
 
-    const res = await fetch(targetUrl, {
+    const res = await fetch(baseUrl, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${kvToken}` },
-      body: JSON.stringify(args)
+      headers: { 
+        'Authorization': `Bearer ${kvToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(commandArray)
     });
 
     const reply = await res.json();
@@ -42,11 +43,11 @@ export default async function handler(request, response) {
 
     // --- GET METHOD: FETCH DATA ---
     if (method === 'GET') {
-      const storedData = await runKvCommand('get', ['acca_global_workspaces']);
+      const storedData = await runKvCommand(['GET', 'acca_global_workspaces']);
       
       if (!storedData) {
         // Database is brand new, seed it with defaults
-        await runKvCommand('set', ['acca_global_workspaces', JSON.stringify(defaultMarkets)]);
+        await runKvCommand(['SET', 'acca_global_workspaces', JSON.stringify(defaultMarkets)]);
         return response.status(200).json(defaultMarkets);
       }
       
@@ -56,23 +57,23 @@ export default async function handler(request, response) {
     // --- POST METHOD: ADD ENTRY ---
     if (method === 'POST') {
       const newWorkspace = request.body;
-      const rawData = await runKvCommand('get', ['acca_global_workspaces']);
+      const rawData = await runKvCommand(['GET', 'acca_global_workspaces']);
       let currentData = rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : defaultMarkets;
 
       currentData.push(newWorkspace);
-      await runKvCommand('set', ['acca_global_workspaces', JSON.stringify(currentData)]);
+      await runKvCommand(['SET', 'acca_global_workspaces', JSON.stringify(currentData)]);
       return response.status(200).json(currentData);
     }
 
     // --- DELETE METHOD: REMOVE ENTRY ---
     if (method === 'DELETE') {
       const { index } = request.query;
-      const rawData = await runKvCommand('get', ['acca_global_workspaces']);
+      const rawData = await runKvCommand(['GET', 'acca_global_workspaces']);
       let currentData = rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : defaultMarkets;
 
       if (index !== undefined) {
         currentData.splice(parseInt(index, 10), 1);
-        await runKvCommand('set', ['acca_global_workspaces', JSON.stringify(currentData)]);
+        await runKvCommand(['SET', 'acca_global_workspaces', JSON.stringify(currentData)]);
       }
       return response.status(200).json(currentData);
     }
