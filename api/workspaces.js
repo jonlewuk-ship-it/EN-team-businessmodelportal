@@ -1,7 +1,6 @@
 export default async function handler(request, response) {
-  const kvUrl = process.env.KV_REST_API_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN;
-
+const kvUrl = process.env.REDIS_URL;
+const kvToken = process.env.REDIS_TOKEN;
   if (!kvUrl || !kvToken) {
     return response.status(500).json({ error: "Vercel Redis environment variables are missing." });
   }
