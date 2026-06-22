@@ -1,13 +1,14 @@
 export default async function handler(request, response) {
-  // 1. Resolve credentials dynamically across different marketplace integrations
-  const kvUrl = process.env.KV_REST_API_URL || process.env.REDIS_URL || process.env.STORAGE_URL;
+  // 1. Check all possible Vercel environment variable variants
+  const kvUrl = process.env.KV_REST_API_URL || process.env.REDIS_URL || process.env.STORAGE_URL || process.env.KV_URL;
   const kvToken = process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN || process.env.STORAGE_TOKEN;
 
   if (!kvUrl || !kvToken) {
-    return response.status(500).json({ error: "Database environment configuration variables are missing." });
+    return response.status(500).json({ 
+      error: `Missing database configuration. Variables found: URL=${!!kvUrl}, TOKEN=${!!kvToken}` 
+    });
   }
 
-  // Fallback blueprint data used if database is empty
   const defaultMarkets = [
     {name:"United Kingdom", city:"London", code:"gb", img:"https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200", url:"https://collaborative-bmc.vercel.app/canvas/1phfrx5eh3a0hbooly4pw7rjfq75ec76", custom:false},
     {name:"Australia", city:"Sydney", code:"au", img:"https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1200", url:"#", custom:false},
@@ -20,9 +21,17 @@ export default async function handler(request, response) {
     {name:"Slovakia", city:"Bratislava", code:"sk", img:"https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?w=1200", url:"#", custom:false}
   ];
 
-  // Upstash REST API body-style format: POST base_url with ["COMMAND", "arg1", "arg2"]
   async function runKvCommand(commandArray) {
-    const baseUrl = kvUrl.endsWith('/') ? kvUrl.slice(0, -1) : kvUrl;
+    // Standardize URL scheme (convert redis:// or keys to proper REST https:// endpoint)
+    let cleanUrl = kvUrl;
+    if (cleanUrl.startsWith('redis://')) {
+      cleanUrl = cleanUrl.replace('redis://', 'https://');
+    }
+    if (cleanUrl.startsWith('rediss://')) {
+      cleanUrl = cleanUrl.replace('rediss://', 'https://');
+    }
+    
+    const baseUrl = cleanUrl.endsWith('/') ? cleanUrl.slice(0, -1) : cleanUrl;
 
     const res = await fetch(baseUrl, {
       method: 'POST',
@@ -33,28 +42,27 @@ export default async function handler(request, response) {
       body: JSON.stringify(commandArray)
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Upstash/Vercel Storage API rejected command: ${errText}`);
+    }
+
     const reply = await res.json();
-    if (reply.error) throw new Error(reply.error);
     return reply.result;
   }
 
   try {
     const { method } = request;
 
-    // --- GET METHOD: FETCH DATA ---
     if (method === 'GET') {
       const storedData = await runKvCommand(['GET', 'acca_global_workspaces']);
-      
       if (!storedData) {
-        // Database is brand new, seed it with defaults
         await runKvCommand(['SET', 'acca_global_workspaces', JSON.stringify(defaultMarkets)]);
         return response.status(200).json(defaultMarkets);
       }
-      
       return response.status(200).json(typeof storedData === 'string' ? JSON.parse(storedData) : storedData);
     }
 
-    // --- POST METHOD: ADD ENTRY ---
     if (method === 'POST') {
       const newWorkspace = request.body;
       const rawData = await runKvCommand(['GET', 'acca_global_workspaces']);
@@ -65,7 +73,6 @@ export default async function handler(request, response) {
       return response.status(200).json(currentData);
     }
 
-    // --- DELETE METHOD: REMOVE ENTRY ---
     if (method === 'DELETE') {
       const { index } = request.query;
       const rawData = await runKvCommand(['GET', 'acca_global_workspaces']);
@@ -81,7 +88,7 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: "Method not allowed" });
 
   } catch (error) {
-    console.error("Database connection failure log:", error);
+    // Send the raw underlying error directly to the response payload to read it live
     return response.status(500).json({ error: error.message });
   }
 }
