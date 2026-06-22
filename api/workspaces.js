@@ -1,8 +1,10 @@
 export default async function handler(request, response) {
-const kvUrl = process.env.KV_REST_API_URL || process.env.REDIS_URL || process.env.STORAGE_URL;
-const kvToken = process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN || process.env.STORAGE_TOKEN;
+  // 1. Resolve credentials dynamically across different marketplace integrations
+  const kvUrl = process.env.KV_REST_API_URL || process.env.REDIS_URL || process.env.STORAGE_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN || process.env.STORAGE_TOKEN;
+
   if (!kvUrl || !kvToken) {
-    return response.status(500).json({ error: "Vercel Redis environment variables are missing." });
+    return response.status(500).json({ error: "Database environment configuration variables are missing." });
   }
 
   // Fallback blueprint data used if database is empty
@@ -18,50 +20,67 @@ const kvToken = process.env.KV_REST_API_TOKEN || process.env.REDIS_TOKEN || proc
     {name:"Slovakia", city:"Bratislava", code:"sk", img:"https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?w=1200", url:"#", custom:false}
   ];
 
+  // Robust isolated internal runner to execute database commands safely
   async function runKvCommand(command, args) {
-    const res = await fetch(`${kvUrl}/${command}`, {
+    // Sanitize URL joining to avoid double slash or malformed URL structures
+    const baseUrl = kvUrl.endsWith('/') ? kvUrl.slice(0, -1) : kvUrl;
+    const targetUrl = `${baseUrl}/${command}`;
+
+    const res = await fetch(targetUrl, {
       method: 'POST',
       headers: { Authorization: `Bearer ${kvToken}` },
       body: JSON.stringify(args)
     });
+
     const reply = await res.json();
     if (reply.error) throw new Error(reply.error);
     return reply.result;
   }
 
   try {
-    // READ: Get all workspaces
-    if (request.method === 'GET') {
-      let data = await runKvCommand('get', ['acca_global_workspaces']);
-      if (!data) {
-        data = JSON.stringify(defaultMarkets);
-        await runKvCommand('set', ['acca_global_workspaces', data]);
+    const { method } = request;
+
+    // --- GET METHOD: FETCH DATA ---
+    if (method === 'GET') {
+      const storedData = await runKvCommand('get', ['acca_global_workspaces']);
+      
+      if (!storedData) {
+        // Database is brand new, seed it with defaults
+        await runKvCommand('set', ['acca_global_workspaces', JSON.stringify(defaultMarkets)]);
+        return response.status(200).json(defaultMarkets);
       }
-      return response.status(200).json(JSON.parse(data));
+      
+      return response.status(200).json(typeof storedData === 'string' ? JSON.parse(storedData) : storedData);
     }
-    // WRITE: Append a workspace
-    if (request.method === 'POST') {
+
+    // --- POST METHOD: ADD ENTRY ---
+    if (method === 'POST') {
       const newWorkspace = request.body;
-      let rawData = await runKvCommand('get', ['acca_global_workspaces']);
-      let currentData = rawData ? JSON.parse(rawData) : defaultMarkets;
+      const rawData = await runKvCommand('get', ['acca_global_workspaces']);
+      let currentData = rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : defaultMarkets;
+
       currentData.push(newWorkspace);
       await runKvCommand('set', ['acca_global_workspaces', JSON.stringify(currentData)]);
       return response.status(200).json(currentData);
     }
 
-    // DELETE: Remove workspace by index
-    if (request.method === 'DELETE') {
+    // --- DELETE METHOD: REMOVE ENTRY ---
+    if (method === 'DELETE') {
       const { index } = request.query;
-      if (index === undefined) return response.status(400).json({ error: "Missing index parameter" });
-      let rawData = await runKvCommand('get', ['acca_global_workspaces']);
-      let currentData = rawData ? JSON.parse(rawData) : defaultMarkets;
-      currentData.splice(parseInt(index, 10), 1);
-      await runKvCommand('set', ['acca_global_workspaces', JSON.stringify(currentData)]);
+      const rawData = await runKvCommand('get', ['acca_global_workspaces']);
+      let currentData = rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : defaultMarkets;
+
+      if (index !== undefined) {
+        currentData.splice(parseInt(index, 10), 1);
+        await runKvCommand('set', ['acca_global_workspaces', JSON.stringify(currentData)]);
+      }
       return response.status(200).json(currentData);
     }
 
     return response.status(405).json({ error: "Method not allowed" });
-  } catch (err) {
-    return response.status(500).json({ error: err.message });
+
+  } catch (error) {
+    console.error("Database connection failure log:", error);
+    return response.status(500).json({ error: error.message });
   }
 }
