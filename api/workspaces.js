@@ -7,8 +7,8 @@ const DEFAULT_WORKSPACES = [
     name: "United Kingdom",
     city: "London",
     code: "gb",
-    img: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200",
-    url: "https://collaborative-bmc.vercel.app/canvas...", // Kept deployment root from image_8da7c6.png
+    img: "https://images.unsplash.com/photo-1513635269975-59663e0ca1ad?w=1200",
+    url: "https://collaborative-bmc.vercel.app/canvas...",
     custom: false
   },
   {
@@ -86,9 +86,23 @@ const DEFAULT_WORKSPACES = [
 ];
 
 export default async function handler(req, res) {
+  // Scoped storage key matching the EN TEAM Strategic Control Hub deployment matrix
   const STORAGE_KEY = 'en_team_workspaces_2026';
 
   try {
+    // 1. Verify if KV Environment Variables are accessible
+    const isKvConfigured = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+
+    // Local development or unlinked deployment handling
+    if (!isKvConfigured) {
+      console.warn("Vercel KV environmental links missing. Running on local static fallback matrix.");
+      if (req.method === 'GET') {
+        return res.status(200).json(DEFAULT_WORKSPACES);
+      }
+      return res.status(501).json({ error: "Cloud updates are unavailable without valid database tokens." });
+    }
+
+    // 2. Main production pipeline using Vercel KV Storage Cluster
     let workspaces = await kv.get(STORAGE_KEY);
     if (!workspaces) {
       await kv.set(STORAGE_KEY, DEFAULT_WORKSPACES);
@@ -122,7 +136,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: `Method ${req.method} not permissible.` });
     }
   } catch (error) {
-    console.error("Vercel KV REST Proxy Failure:", error);
+    console.error("Vercel KV REST Proxy Failure, falling back to static fallback data:", error);
+    
+    // Hard protective layer against frontend workspace dashboard breakdown
+    if (req.method === 'GET') {
+      return res.status(200).json(DEFAULT_WORKSPACES);
+    }
     return res.status(500).json({ error: "Storage backend pipeline error." });
   }
 }
