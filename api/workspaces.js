@@ -1,7 +1,6 @@
 // api/workspaces.js
-import { kv } from '@vercel/kv';
 
-// Complete market array reconstructed from image_8da7c6.png and active EN Team targets
+// 1. Reconstruct full stable workspace array from image_8da7c6.png
 const DEFAULT_WORKSPACES = [
   {
     name: "United Kingdom",
@@ -85,24 +84,32 @@ const DEFAULT_WORKSPACES = [
   }
 ];
 
-export default async function handler(req, res) {
-  // Scoped storage key matching the EN TEAM Strategic Control Hub deployment matrix
+// 2. Safe Dynamic Loading of Vercel KV to prevent compile-time crashes
+let kv = null;
+try {
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    kv = require('@vercel/kv').kv;
+  }
+} catch (e) {
+  console.warn("Vercel KV module not found or unlinked. Operating in static fallback layer.");
+}
+
+module.exports = async function handler(req, res) {
   const STORAGE_KEY = 'en_team_workspaces_2026';
 
-  try {
-    // 1. Verify if KV Environment Variables are accessible
-    const isKvConfigured = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+  // Force HTTP header standard response configurations
+  res.setHeader('Content-Type', 'application/json');
 
-    // Local development or unlinked deployment handling
-    if (!isKvConfigured) {
-      console.warn("Vercel KV environmental links missing. Running on local static fallback matrix.");
+  try {
+    // If KV is completely offline or unavailable, return initial database matrix instantly
+    if (!kv) {
       if (req.method === 'GET') {
         return res.status(200).json(DEFAULT_WORKSPACES);
       }
-      return res.status(501).json({ error: "Cloud updates are unavailable without valid database tokens." });
+      return res.status(501).json({ error: "Storage modifications restricted without linked KV integration." });
     }
 
-    // 2. Main production pipeline using Vercel KV Storage Cluster
+    // Process cloud-linked transaction requests
     let workspaces = await kv.get(STORAGE_KEY);
     if (!workspaces) {
       await kv.set(STORAGE_KEY, DEFAULT_WORKSPACES);
@@ -116,7 +123,7 @@ export default async function handler(req, res) {
       case 'POST':
         const newEntry = req.body;
         if (!newEntry || !newEntry.name || !newEntry.code) {
-          return res.status(400).json({ error: "Invalid payload architecture." });
+          return res.status(400).json({ error: "Malformed request payload configuration." });
         }
         workspaces.push(newEntry);
         await kv.set(STORAGE_KEY, workspaces);
@@ -125,7 +132,7 @@ export default async function handler(req, res) {
       case 'DELETE':
         const { index } = req.query;
         if (index === undefined || index < 0 || index >= workspaces.length) {
-          return res.status(400).json({ error: "Target out of bounds or missing." });
+          return res.status(400).json({ error: "Index parameters out of target workspace boundary." });
         }
         workspaces.splice(index, 1);
         await kv.set(STORAGE_KEY, workspaces);
@@ -133,15 +140,14 @@ export default async function handler(req, res) {
 
       default:
         res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
-        return res.status(405).json({ error: `Method ${req.method} not permissible.` });
+        return res.status(405).json({ error: `Method ${req.method} not allowed.` });
     }
   } catch (error) {
-    console.error("Vercel KV REST Proxy Failure, falling back to static fallback data:", error);
-    
-    // Hard protective layer against frontend workspace dashboard breakdown
+    console.error("Critical API Execution Fallback Triggered:", error);
+    // Absolute failsafe layer: Always serve data to clear the error panel
     if (req.method === 'GET') {
       return res.status(200).json(DEFAULT_WORKSPACES);
     }
-    return res.status(500).json({ error: "Storage backend pipeline error." });
+    return res.status(500).json({ error: "Pipeline processing breakdown." });
   }
-}
+};
