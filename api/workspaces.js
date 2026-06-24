@@ -7,7 +7,7 @@ const DEFAULT_WORKSPACES = [
     city: "London",
     code: "gb",
     img: "https://images.unsplash.com/photo-1513635269975-59663e0ca1ad?w=1200",
-    url: "https://collaborative-bmc.vercel.app/canvas...",
+    url: "https://collaborative-bmc.vercel.app/canvas/1phfrx5eh3a0hbooly4pw7rjfq75ec76",
     custom: false
   },
   {
